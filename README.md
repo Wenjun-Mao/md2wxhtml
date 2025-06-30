@@ -29,9 +29,9 @@ md2wxhtml --input <input_file.md> --output <output_file.html>
 ### As a Python Library
 
 ```python
-from md2wxhtml.core.converter import MarkdownToWeChatConverter
+from md2wxhtml.core.converter import WeChatConverter
 
-converter = MarkdownToWeChatConverter()
-html_output = converter.convert_markdown_to_wechat_html("Your markdown content here.")
+converter = WeChatConverter()
+html_output = converter.convert("Your markdown content here.")
 print(html_output)
 ```
