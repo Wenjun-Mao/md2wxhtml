@@ -8,6 +8,10 @@ A tool to convert Markdown files into a format suitable for WeChat articles, han
 *   Separates and processes code blocks for syntax highlighting and horizontal scrolling.
 *   Merges processed content and code blocks into a single HTML document.
 
+## Disclaimer
+
+This project is an independent open-source tool and is not affiliated with, endorsed by, or officially connected to WeChat or Tencent.
+
 ## Installation
 
 ```bash
