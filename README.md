@@ -29,9 +29,30 @@ md2wxhtml --input <input_file.md> --output <output_file.html>
 ### As a Python Library
 
 ```python
-from md2wxhtml.core.converter import WeChatConverter
+from md2wxhtml import WeChatConverter
 
-converter = WeChatConverter()
-html_output = converter.convert("Your markdown content here.")
+converter = WeChatConverter(content_theme="blue", code_theme="monokai")
+conversion_result = converter.convert("Your markdown content here.")
+html_output = conversion_result.html
 print(html_output)
+```
+
+## Available Themes
+
+The `content_theme` argument accepts the following built-in theme names:
+
+- `default`
+- `blue`
+- `dark`
+- `github`
+- `green`
+- `hammer`
+- `red`
+
+The `code_theme` argument uses [Pygments](https://pygments.org/docs/styles/) styles for code highlighting. You can specify any valid Pygments style name (e.g., `monokai`, `default`, `friendly`, `colorful`, etc.) to adjust the appearance of code blocks.
+
+You can specify these names when creating a `WeChatConverter` instance. For example:
+
+```python
+converter = WeChatConverter(content_theme="github", code_theme="monokai")
 ```

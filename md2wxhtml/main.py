@@ -1,5 +1,5 @@
 import argparse
-from .core.converter import WeChatConverter
+from . import WeChatConverter
 
 def main():
     parser = argparse.ArgumentParser(description="Convert Markdown to WeChat HTML.")
