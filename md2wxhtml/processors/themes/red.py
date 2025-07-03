@@ -30,8 +30,8 @@ def get_css() -> str:
         color: rgb(220, 20, 60);
     }
     .wechat-content h2 {
-        color: #525d8b;
-        background: #fef2eb;
+        color: rgb(220, 20, 60);
+        background: rgba(220, 20, 60, 0.08);
     }
     /* Remove highlight from the whole paragraph, only highlight the span */
     .wechat-content p.list-highlight {
