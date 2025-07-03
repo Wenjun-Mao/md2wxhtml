@@ -44,27 +44,30 @@ def _lists_to_paragraphs(html: str) -> str:
         for li in ul.find_all("li", recursive=False):
             p = soup.new_tag("p")
             p["class"] = "list-highlight"
-            text = li.get_text(strip=True)
-            if '：' in text:
-                before, after = text.split('：', 1)
-                highlight_span = soup.new_tag("span")
-                highlight_span["class"] = "list-highlight-span"
-                highlight_span.string = before + '：'
-                p.append(highlight_span)
-                if after.strip():
-                    p.append(after)
-            else:
-                p.string = text
+            
+            # Move all children from <li> to <p>
+            for child in list(li.contents):
+                p.append(child)
+
             p["style"] = li.get("style", "")
-            ul.insert_before(p)
-        ul.decompose()
+            li.replace_with(p)
+        ul.unwrap()
+
     for ol in soup.find_all("ol"):
         for idx, li in enumerate(ol.find_all("li", recursive=False), 1):
             p = soup.new_tag("p")
-            p.string = f"{idx}. {li.get_text(strip=True)}"
+            
+            # Prepend the number to the paragraph's content
+            p.append(f"{idx}. ")
+            
+            # Move all children from <li> to <p>
+            for child in list(li.contents):
+                p.append(child)
+
             p["style"] = li.get("style", "")
-            ol.insert_before(p)
-        ol.decompose()
+            li.replace_with(p)
+        ol.unwrap()
+        
     return str(soup)
 
 def _add_paragraph_spacing(html: str, margin_px: int = 16) -> str:
