@@ -22,6 +22,8 @@ jobs:
         python-version-file: "pyproject.toml"
     - name: Install the project dependencies
       run: uv sync
+    - name: Clean previous builds
+      run: rm -rf dist build *.egg-info
     - name: Build package
       run: uv build
     - name: Publish package to PyPI
