@@ -61,7 +61,7 @@ def _lists_to_paragraphs(html: str) -> str:
     for ol in soup.find_all("ol"):
         for idx, li in enumerate(ol.find_all("li", recursive=False), 1):
             p = soup.new_tag("p")
-            p.string = f"{idx}. {li.get_text(strip=True)}"
+            p.string = f"{idx}. {li.get_text(strip=False)}"
             p["style"] = li.get("style", "")
             ol.insert_before(p)
         ol.decompose()
@@ -75,7 +75,7 @@ def _add_paragraph_spacing(html: str, margin_px: int = 16) -> str:
     soup = BeautifulSoup(html, "html.parser")
     for p in soup.find_all("p"):
         # Skip paragraphs that contain code block placeholders
-        text_content = p.get_text(strip=True)
+        text_content = p.get_text(strip=False)
         if text_content.startswith("{{CODE_BLOCK_PLACEHOLDER_") and text_content.endswith("}}"):
             # Remove the <p> wrapper from code block placeholders
             p.replace_with(text_content)
