@@ -44,7 +44,7 @@ def _lists_to_paragraphs(html: str) -> str:
         for li in ul.find_all("li", recursive=False):
             p = soup.new_tag("p")
             p["class"] = "list-highlight"
-            text = li.get_text(strip=True)
+            text = li.get_text(strip=False)
             if '：' in text:
                 before, after = text.split('：', 1)
                 highlight_span = soup.new_tag("span")
