@@ -1,8 +1,10 @@
-import markdown
-from premailer import transform
-from bs4 import BeautifulSoup
+import re
 
-from ..processors.themes import default, github, hammer, dark, blue, green, red
+import markdown
+from bs4 import BeautifulSoup
+from premailer import transform
+
+from ..processors.themes import blue, dark, default, github, green, hammer, red
 
 theme_map = {
     "default": default,
@@ -21,6 +23,7 @@ def process_content(clean_markdown: str, theme: str = "default") -> str:
     Applies the selected article theme and injects its CSS as inline styles (for WeChat compatibility).
     """
     html = markdown.markdown(clean_markdown, extensions=["tables", "fenced_code", "codehilite", "toc"])
+    html = _auto_link_urls(html)
     theme_mod = theme_map.get(theme, default)
     if hasattr(theme_mod, "postprocess_html"):
         html = theme_mod.postprocess_html(html)
@@ -34,6 +37,29 @@ def process_content(clean_markdown: str, theme: str = "default") -> str:
         html = transform(html, css_text=css, keep_style_tags=False, remove_classes=False)
     return html
 
+def _auto_link_urls(html: str) -> str:
+    """
+    Find standalone URLs in the HTML and convert them into clickable links.
+    Skips URLs already inside <a> tags.
+    """
+    url_pattern = re.compile(
+        r'((https?://|www\.)[^\s<>"\']+)', re.IGNORECASE
+    )
+
+    def replacer(match):
+        url = match.group(1)
+        href = url if url.startswith("http") else f"http://{url}"
+        return f'<a href="{href}" style="color:#1d4ed8; border-bottom-color:#3b82f6">{url}</a>'
+
+    soup = BeautifulSoup(html, "html.parser")
+    for text in soup.find_all(string=True):
+        if text.parent.name == "a":
+            continue
+        new_text = url_pattern.sub(replacer, text)
+        if new_text != text:
+            text.replace_with(BeautifulSoup(new_text, "html.parser"))
+    return str(soup)
+
 def _lists_to_paragraphs(html: str) -> str:
     """
     Convert <ul>/<ol>/<li> lists to <p> paragraphs with bullet/number prefixes for WeChat compatibility.
@@ -44,24 +70,35 @@ def _lists_to_paragraphs(html: str) -> str:
         for li in ul.find_all("li", recursive=False):
             p = soup.new_tag("p")
             p["class"] = "list-highlight"
-            text = li.get_text(strip=False)
-            if '：' in text:
-                before, after = text.split('：', 1)
+            # Use decode_contents() to preserve links and formatting
+            li_html = li.decode_contents()
+            if '：' in li.get_text(strip=False):
+                before, after = li.get_text(strip=False).split('：', 1)
                 highlight_span = soup.new_tag("span")
                 highlight_span["class"] = "list-highlight-span"
                 highlight_span.string = before + '：'
                 p.append(highlight_span)
-                if after.strip():
-                    p.append(after)
+                # Insert the rest of the HTML after the highlight
+                # Find the index of '：' in the HTML and split there
+                html_split = li_html.split('：', 1)
+                if len(html_split) == 2 and html_split[1].strip():
+                    # Append as NavigableString or parse as HTML fragment
+                    after_html = BeautifulSoup(html_split[1], "html.parser")
+                    for elem in after_html.contents:
+                        p.append(elem)
             else:
-                p.string = text
+                # No '：', just insert the HTML as-is
+                p.append(BeautifulSoup(li_html, "html.parser"))
             p["style"] = li.get("style", "")
             ul.insert_before(p)
         ul.decompose()
     for ol in soup.find_all("ol"):
         for idx, li in enumerate(ol.find_all("li", recursive=False), 1):
             p = soup.new_tag("p")
-            p.string = f"{idx}. {li.get_text(strip=False)}"
+            # Use decode_contents() to preserve links and formatting
+            li_html = li.decode_contents()
+            # p.append(f"{idx}. ")
+            p.append(BeautifulSoup(li_html, "html.parser"))
             p["style"] = li.get("style", "")
             ol.insert_before(p)
         ol.decompose()
