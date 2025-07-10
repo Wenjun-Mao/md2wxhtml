@@ -62,46 +62,68 @@ def _auto_link_urls(html: str) -> str:
 
 def _lists_to_paragraphs(html: str) -> str:
     """
-    Convert <ul>/<ol>/<li> lists to <p> paragraphs with bullet/number prefixes for WeChat compatibility.
+    Convert <ul>/<ol>/<li> lists to <p> paragraphs for WeChat compatibility.
+    Preserves nesting structure with indentation.
     For <ul>, highlight only the content before '：' if present, no vertical line.
     """
     soup = BeautifulSoup(html, "html.parser")
-    for ul in soup.find_all("ul"):
-        for li in ul.find_all("li", recursive=False):
+    
+    def process_list(list_element, indent_level=0):
+        """Recursively process lists, maintaining nesting with indentation."""
+        margin_left = indent_level * 20  # 20px per nesting level
+        
+        for li in list_element.find_all("li", recursive=False):
             p = soup.new_tag("p")
-            p["class"] = "list-highlight"
-            # Use decode_contents() to preserve links and formatting
+            if list_element.name == "ul":
+                p["class"] = "list-highlight"
+            
+            # Add indentation for nested items
+            base_style = li.get("style", "")
+            if margin_left > 0:
+                if base_style and not base_style.strip().endswith(";"):
+                    base_style += ";"
+                base_style += f"margin-left:{margin_left}px;"
+            
+            # Process nested lists first (recursively)
+            nested_lists = li.find_all(["ul", "ol"], recursive=False)
+            for nested in nested_lists:
+                nested.extract()  # Remove from li temporarily
+            
+            # Get li content without nested lists
             li_html = li.decode_contents()
-            if '：' in li.get_text(strip=False):
+            
+            # Handle the '：' highlighting logic for ul
+            if list_element.name == "ul" and '：' in li.get_text(strip=False):
                 before, after = li.get_text(strip=False).split('：', 1)
                 highlight_span = soup.new_tag("span")
                 highlight_span["class"] = "list-highlight-span"
                 highlight_span.string = before + '：'
                 p.append(highlight_span)
-                # Insert the rest of the HTML after the highlight
-                # Find the index of '：' in the HTML and split there
+                
                 html_split = li_html.split('：', 1)
                 if len(html_split) == 2 and html_split[1].strip():
-                    # Append as NavigableString or parse as HTML fragment
                     after_html = BeautifulSoup(html_split[1], "html.parser")
                     for elem in after_html.contents:
                         p.append(elem)
             else:
-                # No '：', just insert the HTML as-is
-                p.append(BeautifulSoup(li_html, "html.parser"))
-            p["style"] = li.get("style", "")
-            ul.insert_before(p)
-        ul.decompose()
-    for ol in soup.find_all("ol"):
-        for idx, li in enumerate(ol.find_all("li", recursive=False), 1):
-            p = soup.new_tag("p")
-            # Use decode_contents() to preserve links and formatting
-            li_html = li.decode_contents()
-            # p.append(f"{idx}. ")
-            p.append(BeautifulSoup(li_html, "html.parser"))
-            p["style"] = li.get("style", "")
-            ol.insert_before(p)
-        ol.decompose()
+                # No '：' or ordered list, just insert the HTML as-is
+                if li_html.strip():
+                    p.append(BeautifulSoup(li_html, "html.parser"))
+            
+            p["style"] = base_style
+            list_element.insert_before(p)
+            
+            # Process nested lists after creating the parent paragraph
+            for nested in nested_lists:
+                process_list(nested, indent_level + 1)
+    
+    # Process all top-level lists
+    for list_element in soup.find_all(["ul", "ol"]):
+        # Only process if this is a top-level list (not nested)
+        if not list_element.find_parent(["ul", "ol"]):
+            process_list(list_element, 0)
+            list_element.decompose()
+    
     return str(soup)
 
 def _add_paragraph_spacing(html: str, margin_px: int = 16) -> str:
